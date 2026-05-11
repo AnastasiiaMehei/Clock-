@@ -100,6 +100,7 @@
       <rect width="100%" height="100%" fill="rgba(255,255,255,0.05)" />
       <path d="M4 4h16v16H4z" stroke="#5a8cff" stroke-width="2"/>
       <circle cx="12" cy="10" r="3" stroke="#9b5aff" stroke-width="2"/>
+      <path d="M4 18l4-6 4 5 4-3 4 4" stroke="#5a8cff" stroke-width="2"/>
     </svg>
   </div>
 </div>
