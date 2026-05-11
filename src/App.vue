@@ -1,98 +1,79 @@
 <template>
   <div class="app-container">
-    <header class="app-header">
-      <h1>Clock App</h1>
-    </header>
+    <header class="app-header"></header>
 
     <main class="app-main">
       <div class="content-wrapper">
         <div class="clock-section">
           <div class="clock-card">
-                <div class="mode-selector">
-            <button
+            <div class="mode-selector">
+              <button
                 type="button"
                 class="mode-button magic-button"
                 :class="{ active: currentMode === 'time' }"
                 @click="currentMode = 'time'"
-            >
+              >
                 Show Time
-            </button>
-            <button
+              </button>
+              <button
                 type="button"
                 class="mode-button magic-button"
                 :class="{ active: currentMode === 'timer' }"
                 @click="currentMode = 'timer'"
-            >
+              >
                 Show Timer
-            </button>
+              </button>
             </div>
 
             <AnalogClock
+              v-if="currentMode === 'time'"
               :mode="currentMode"
-              :timer-seconds="timerSeconds"
-              :is-timer-active="timerActive"
               :time-data="timeData"
             />
 
-          <div v-if="currentMode === 'time'" class="time-details">
-  <p>🕒 Current Time: <strong>{{ displayTime }}</strong></p>
-  <p>🌐 Timezone:  <strong>{{ timeData?.timezone || 'UTC' }}</strong></p>
-</div>
-
-<p class="clock-label">✨Select Region and City
-
-</p>
-
-
-            <div v-if="currentMode === 'timer'" class="timer-controls">
-              <div class="timer-buttons">
-                <button type="button" class="control-button" @click="toggleTimer">
-                  {{ timerActive ? 'Pause' : 'Start' }}
-                </button>
-                <button type="button" class="control-button" @click="resetTimer">
-                  Reset
-                </button>
-              </div>
-              <p class="timer-display">{{ formattedTimer }}</p>
+            <div v-if="currentMode === 'time'" class="time-details">
+              <p>🕒 Current Time: <strong>{{ displayTime }}</strong></p>
+              <p>🌐 Timezone: <strong>{{ timeData?.timezone || 'UTC' }}</strong></p>
             </div>
 
+            <div v-if="currentMode === 'timer'" class="timer-controls">
+              <Stopwatch />
+            </div>
+
+            <!-- Пошук таймзон -->
             <div class="timezone-search-card" v-if="currentMode === 'time'">
               <p class="clock-label">Select Region and City</p>
               <div class="search-fields">
-<CustomDropdown
-  v-model="area"
-  :options="areaOptions"
-  placeholder="Choose region"
-  dropdown-id="region"
-  :open-dropdown="openDropdown"
-  @update:openDropdown="openDropdown = $event"
-/>
+                <CustomDropdown
+                  v-model="area"
+                  :options="areaOptions"
+                  placeholder="Choose region"
+                  dropdown-id="region"
+                  :open-dropdown="openDropdown"
+                  @update:openDropdown="openDropdown = $event"
+                />
 
-<CustomDropdown
-  v-model="timezoneValue"
-  :options="locationOptions"
-  placeholder="Choose city"
-  dropdown-id="city"
-  :open-dropdown="openDropdown"
-  @update:openDropdown="openDropdown = $event"
-  :disabled="!area"
-/>
-
-
-
-
+                <CustomDropdown
+                  v-model="timezoneValue"
+                  :options="locationOptions"
+                  placeholder="Choose city"
+                  dropdown-id="city"
+                  :open-dropdown="openDropdown"
+                  @update:openDropdown="openDropdown = $event"
+                  :disabled="!area"
+                />
               </div>
-                <button
+              <button
                 type="button"
                 class="refresh-button magic-button"
                 @click="loadTimezoneTime"
                 :disabled="loading || !timezoneValue"
-                >
+              >
                 {{ loading ? 'Loading...' : 'Show Time' }}
-                </button>
+              </button>
             </div>
 
-            <div class="error-message" v-if="error">
+            <div class="error-message" v-if="error && currentMode === 'time'">
               <p>{{ error }}</p>
             </div>
           </div>
@@ -101,19 +82,29 @@
         <div class="images-section" v-if="currentMode === 'time' && cityImages.length > 0">
           <div class="images-container">
             <p class="images-title">City Images</p>
-            <div class="images-carousel">
-              <a
-                v-for="(image, index) in cityImages"
-                :key="index"
-                :href="image.pageURL"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="image-item"
-                :style="getImageStyle(index)"
-              >
-                <img :src="image.webformatURL" :alt="`City image ${index + 1}`" />
-              </a>
-            </div>
+    <div class="images-carousel">
+  <a
+    v-for="(image, index) in cityImages"
+    :key="index"
+    :href="image.pageURL"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="image-item"
+    :style="getImageStyle(index)"
+  >
+    <img :src="image.webformatURL" :alt="`City image ${index + 1}`" />
+  </a>
+
+  <div v-if="cityImages.length % 2 !== 0" class="image-item placeholder">
+    <svg width="100%" height="200" viewBox="0 0 24 24" fill="none">
+      <rect width="100%" height="100%" fill="rgba(255,255,255,0.05)" />
+      <path d="M4 4h16v16H4z" stroke="#5a8cff" stroke-width="2"/>
+      <circle cx="12" cy="10" r="3" stroke="#9b5aff" stroke-width="2"/>
+    </svg>
+  </div>
+</div>
+
+
           </div>
         </div>
       </div>
@@ -128,6 +119,7 @@ import { searchCityImages } from './services/pixabayApi';
 import { useImageAnimation } from './composables/useImageAnimation';
 import AnalogClock from './components/AnalogClock.vue';
 import CustomDropdown from './components/CustomDropdown.vue';
+import Stopwatch from './components/Stopwatch.vue';
 
 const timeData = ref(null);
 const loading = ref(false);
@@ -136,11 +128,7 @@ const area = ref('');
 const timezoneValue = ref('');
 const timezoneList = ref([]);
 const currentMode = ref('time');
-const timerActive = ref(false);
-const timerSeconds = ref(0);
 const cityImages = ref([]);
-let timerInterval = null;
-
 const openDropdown = ref(null);
 
 const { animateImagesOnLoad, getImageStyle, clearAnimations } = useImageAnimation();
@@ -158,13 +146,6 @@ const displayTime = computed(() => {
     });
   }
   return 'Loading...';
-});
-
-
-const formattedTimer = computed(() => {
-  const minutes = String(Math.floor(timerSeconds.value / 60)).padStart(2, '0');
-  const seconds = String(timerSeconds.value % 60).padStart(2, '0');
-  return `${minutes}:${seconds}`;
 });
 
 async function loadTimezones() {
@@ -195,21 +176,18 @@ const locationOptions = computed(() => {
 watch(area, () => {
   timezoneValue.value = '';
 });
-
 async function refreshTime() {
-  loading.value = true;
-  error.value = '';
+  if (currentMode.value !== 'time') return;
   try {
     const data = await fetchCurrentTimeByIp();
     timeData.value = data;
-    console.log('Loaded time data:', data);
   } catch (err) {
     console.error('Error loading time:', err);
-    error.value = err instanceof Error ? err.message : 'Error fetching time from API';
-  } finally {
-    loading.value = false;
+    error.value = null; 
   }
 }
+
+
 
 async function loadTimezoneTime() {
   if (!timezoneValue.value) {
@@ -241,40 +219,19 @@ async function loadTimezoneTime() {
   }
 }
 
-function stopTimer() {
-  timerActive.value = false;
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-}
-
-function toggleTimer() {
-  if (timerActive.value) {
-    stopTimer();
-    return;
-  }
-  timerActive.value = true;
-  timerInterval = setInterval(() => {
-    timerSeconds.value += 1;
-  }, 1000);
-}
-
-function resetTimer() {
-  stopTimer();
-  timerSeconds.value = 0;
-}
-
 onUnmounted(() => {
-  stopTimer();
   clearAnimations();
 });
 
 onMounted(async () => {
   await loadTimezones();
-  refreshTime();
+  if (currentMode.value === 'time') {
+    refreshTime();
+  }
 });
+
 </script>
+
 
 
 <style scoped>
@@ -496,6 +453,22 @@ select {
   object-fit: cover;
   display: block;
 }
+.placeholder {
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  border: 3px dashed rgba(90, 140, 255, 0.4);
+}
+
+.placeholder img {
+  opacity: 0.3;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
 .magic-button {
   position: relative;
   display: inline-block;

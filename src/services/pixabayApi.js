@@ -7,7 +7,7 @@ export async function searchCityImages(cityName) {
   }
 
   const response = await fetch(
-    `${PIXABAY_BASE_URL}?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(cityName)}&image_type=photo&per_page=5&safesearch=true`
+    `${PIXABAY_BASE_URL}?key=${PIXABAY_API_KEY}&q=${encodeURIComponent(cityName)}&image_type=photo&per_page=8&safesearch=true`
   );
 
   if (!response.ok) {
@@ -15,5 +15,8 @@ export async function searchCityImages(cityName) {
   }
 
   const data = await response.json();
-  return data.hits || [];
+  const hits = data.hits || [];
+
+  const evenCount = hits.length % 2 === 0 ? hits.length : hits.length - 1;
+  return hits.slice(0, evenCount);
 }
