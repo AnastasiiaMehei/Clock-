@@ -29,7 +29,7 @@ const drawClock = () => {
 
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.lineWidth = 2;
@@ -49,7 +49,6 @@ const drawClock = () => {
     ctx.stroke();
   }
 
-  // Draw minute markers
   for (let i = 0; i < 60; i++) {
     if (i % 5 !== 0) {
       const angle = (i * Math.PI) / 30;
@@ -74,17 +73,13 @@ const drawClock = () => {
     const seconds = totalSeconds % 60;
     now = { hours, minutes, seconds };
   } else {
-if (props.timeData?.datetime) {
-  const date = new Date(props.timeData.datetime);
-  const offsetMinutes = props.timeData.utc_offset 
-    ? parseInt(props.timeData.utc_offset.slice(1,3)) * 60 + parseInt(props.timeData.utc_offset.slice(4))
-    : 0;
-  date.setMinutes(date.getMinutes() + offsetMinutes);
-  now = {
-    hours: date.getHours() % 12,
-    minutes: date.getMinutes(),
-    seconds: date.getSeconds()
-  };
+    if (props.timeData?.datetime) {
+      const date = new Date(props.timeData.datetime);
+      now = {
+        hours: date.getHours() % 12,
+        minutes: date.getMinutes(),
+        seconds: date.getSeconds()
+      };
     } else {
       const date = new Date();
       now = {
@@ -104,9 +99,12 @@ if (props.timeData?.datetime) {
   const secondAngle = (now.seconds * Math.PI) / 30;
   drawHand(ctx, centerX, centerY, secondAngle, radius * 0.9, 2, '#ff6b6b');
 
+  // Центр
   ctx.beginPath();
-  ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
-  ctx.fillStyle = 'white';
+  ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#ff6b6b';
+  ctx.shadowBlur = 15;
   ctx.fill();
 };
 
@@ -118,6 +116,7 @@ const drawHand = (ctx, centerX, centerY, angle, length, width, color) => {
   ctx.lineTo(x, y);
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
+  ctx.lineCap = 'round';
   ctx.stroke();
 };
 
@@ -147,26 +146,32 @@ watch([() => props.mode, () => props.timerSeconds, () => props.isTimerActive, ()
 .analog-clock-container {
   display: flex;
   justify-content: center;
-  margin: 1rem 0;
+  margin: 2rem 0;
+  animation: float 6s ease-in-out infinite;
 }
 
 .analog-clock {
   border-radius: 50%;
   background: radial-gradient(circle at center, #1a002b, #070707);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 25px rgba(180, 0, 255, 0.6), inset 0 0 15px rgba(0, 255, 255, 0.3);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 
+    0 0 25px rgba(180, 0, 255, 0.6),
+    inset 0 0 25px rgba(0, 255, 255, 0.3),
+    0 0 60px rgba(90, 140, 255, 0.4);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  position: relative;
 }
 
-.analog-clock-container {
-  display: flex;
-  justify-content: center;
-  margin: 1rem 0;
-  animation: float 6s ease-in-out infinite;
+.analog-clock:hover {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 
+    0 0 40px rgba(180, 0, 255, 0.8),
+    inset 0 0 30px rgba(0, 255, 255, 0.5),
+    0 0 80px rgba(90, 140, 255, 0.6);
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-12px); }
 }
-
 </style>

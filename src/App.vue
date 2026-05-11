@@ -2,30 +2,29 @@
   <div class="app-container">
     <header class="app-header">
       <h1>Clock App</h1>
-      <p>Real-time clock with timezone selection and city images</p>
     </header>
 
     <main class="app-main">
       <div class="content-wrapper">
         <div class="clock-section">
           <div class="clock-card">
-            <div class="mode-selector">
-              <button
+                <div class="mode-selector">
+            <button
                 type="button"
-                class="mode-button"
+                class="mode-button magic-button"
                 :class="{ active: currentMode === 'time' }"
                 @click="currentMode = 'time'"
-              >
+            >
                 Show Time
-              </button>
-              <button
+            </button>
+            <button
                 type="button"
-                class="mode-button"
+                class="mode-button magic-button"
                 :class="{ active: currentMode === 'timer' }"
                 @click="currentMode = 'timer'"
-              >
+            >
                 Show Timer
-              </button>
+            </button>
             </div>
 
             <AnalogClock
@@ -35,10 +34,15 @@
               :time-data="timeData"
             />
 
-            <div v-if="currentMode === 'time'" class="time-details">
-              <p>Current Time: <strong>{{ displayTime }}</strong></p>
-              <p>Timezone: <strong>{{ timeData?.timezone || 'UTC' }}</strong></p>
-            </div>
+          <div v-if="currentMode === 'time'" class="time-details">
+  <p>🕒 Current Time: <strong>{{ displayTime }}</strong></p>
+  <p>🌐 Timezone:  <strong>{{ timeData?.timezone || 'UTC' }}</strong></p>
+</div>
+
+<p class="clock-label">✨Select Region and City
+
+</p>
+
 
             <div v-if="currentMode === 'timer'" class="timer-controls">
               <div class="timer-buttons">
@@ -55,28 +59,37 @@
             <div class="timezone-search-card" v-if="currentMode === 'time'">
               <p class="clock-label">Select Region and City</p>
               <div class="search-fields">
-                <label>
-                  Region / Country
-                  <select v-model="area">
-                    <option value="" disabled>Choose region</option>
-                    <option v-for="region in areaOptions" :key="region" :value="region">{{ region }}</option>
-                  </select>
-                </label>
+<CustomDropdown
+  v-model="area"
+  :options="areaOptions"
+  placeholder="Choose region"
+  dropdown-id="region"
+  :open-dropdown="openDropdown"
+  @update:openDropdown="openDropdown = $event"
+/>
 
-                <label>
-                  City / Location
-                  <select v-model="timezoneValue" :disabled="!area">
-                    <option value="" disabled>Choose city</option>
-                    <option v-for="option in locationOptions" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
+<CustomDropdown
+  v-model="timezoneValue"
+  :options="locationOptions"
+  placeholder="Choose city"
+  dropdown-id="city"
+  :open-dropdown="openDropdown"
+  @update:openDropdown="openDropdown = $event"
+  :disabled="!area"
+/>
+
+
+
+
               </div>
-
-              <button type="button" class="refresh-button" @click="loadTimezoneTime" :disabled="loading || !timezoneValue">
+                <button
+                type="button"
+                class="refresh-button magic-button"
+                @click="loadTimezoneTime"
+                :disabled="loading || !timezoneValue"
+                >
                 {{ loading ? 'Loading...' : 'Show Time' }}
-              </button>
+                </button>
             </div>
 
             <div class="error-message" v-if="error">
@@ -114,6 +127,7 @@ import { fetchCurrentTimeByIp, fetchTimeByTimezone, fetchTimezones } from './ser
 import { searchCityImages } from './services/pixabayApi';
 import { useImageAnimation } from './composables/useImageAnimation';
 import AnalogClock from './components/AnalogClock.vue';
+import CustomDropdown from './components/CustomDropdown.vue';
 
 const timeData = ref(null);
 const loading = ref(false);
@@ -127,11 +141,13 @@ const timerSeconds = ref(0);
 const cityImages = ref([]);
 let timerInterval = null;
 
+const openDropdown = ref(null);
+
 const { animateImagesOnLoad, getImageStyle, clearAnimations } = useImageAnimation();
 
 const displayTime = computed(() => {
-  if (timeData.value?.datetime) {
-    return new Date(timeData.value.datetime).toLocaleString('en-US', {
+  if (timeData.value?.local_time) {
+    return new Date(timeData.value.local_time).toLocaleString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -143,6 +159,7 @@ const displayTime = computed(() => {
   }
   return 'Loading...';
 });
+
 
 const formattedTimer = computed(() => {
   const minutes = String(Math.floor(timerSeconds.value / 60)).padStart(2, '0');
@@ -207,12 +224,10 @@ async function loadTimezoneTime() {
     const data = await fetchTimeByTimezone(timezoneValue.value);
     timeData.value = data;
     
-    // Extract city name from timezone
     const cityName = timezoneValue.value.split('/').pop().replace(/_/g, ' ');
     const images = await searchCityImages(cityName);
     cityImages.value = images;
     
-    // Trigger animations after images are loaded
     setTimeout(() => {
       animateImagesOnLoad(images);
     }, 100);
@@ -261,6 +276,7 @@ onMounted(async () => {
 });
 </script>
 
+
 <style scoped>
 .app-container {
   min-height: 100vh;
@@ -292,12 +308,21 @@ h1 {
 
 .content-wrapper {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 3rem;
   max-width: 1400px;
   margin: 0 auto;
   align-items: start;
 }
+
+.content-wrapper:has(.images-section) {
+  grid-template-columns: 1fr 1fr;
+}
+
+.content-wrapper:not(:has(.images-section)) {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
 
 .clock-section {
   display: flex;
@@ -470,6 +495,169 @@ select {
   height: 200px;
   object-fit: cover;
   display: block;
+}
+.magic-button {
+  position: relative;
+  display: inline-block;
+  padding: 0.9rem 1.8rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5a8cff, #9b5aff);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.magic-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.magic-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 40px rgba(90, 140, 255, 0.6);
+}
+
+.magic-button:hover::before {
+  opacity: 1;
+}
+
+.magic-input {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.magic-input:focus {
+  outline: none;
+  border-color: #5a8cff;
+  box-shadow: 0 0 12px rgba(90, 140, 255, 0.7);
+}
+
+.magic-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.magic-textarea:focus {
+  outline: none;
+  border-color: #9b5aff;
+  box-shadow: 0 0 16px rgba(155, 90, 255, 0.6);
+}
+
+.magic-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  font-size: 0.95rem;
+}
+
+.magic-select {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.magic-select select {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.magic-select select:focus {
+  outline: none;
+  border-color: #5a8cff;
+  box-shadow: 0 0 12px rgba(90, 140, 255, 0.7);
+}
+
+.magic-select .arrow {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #fff;
+  transform: translateY(-50%);
+  transition: transform 0.3s ease;
+}
+
+.magic-select select:focus + .arrow {
+  transform: translateY(-50%) rotate(180deg);
+  border-top-color: #5a8cff;
+}
+.magic-select {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.magic-select select {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1rem;
+  appearance: none; 
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.magic-select select:focus {
+  outline: none;
+  border-color: #5a8cff;
+  box-shadow: 0 0 12px rgba(90, 140, 255, 0.7);
+}
+
+.magic-select .arrow {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #fff;
+  transform: translateY(-50%);
+  transition: transform 0.3s ease, border-top-color 0.3s ease;
+}
+
+.magic-select select:focus + .arrow {
+  transform: translateY(-50%) rotate(180deg);
+  border-top-color: #5a8cff;
 }
 
 @media (max-width: 1200px) {
